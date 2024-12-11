@@ -10,17 +10,17 @@ st.write("여러 PDF 파일을 드래그 앤 드롭하여 순서를 선택하고
 uploaded_files = st.file_uploader("PDF 파일을 업로드하세요", accept_multiple_files=True, type="pdf")
 
 if uploaded_files:
-    st.write("파일 순서를 조정하려면 드래그 앤 드롭하세요:")
+    st.write("파일 순서를 조정하려면 목록을 클릭하여 순서를 변경하세요:")
 
-    # 파일 순서 조정 가능하게 리스트 출력
+    # 파일 이름 표시 및 순서 변경
     filenames = [file.name for file in uploaded_files]
-    reordered_filenames = st.experimental_data_editor(
-        filenames, 
-        key="reorder",
-        use_container_width=True
+    reordered_filenames = st.multiselect(
+        "파일 순서 지정", options=filenames, default=filenames
     )
 
-    if st.button("병합 시작"):
+    if len(reordered_filenames) != len(filenames):
+        st.error("모든 파일을 선택해야 합니다.")
+    elif st.button("병합 시작"):
         # 순서대로 파일 병합
         merger = PdfMerger()
         for filename in reordered_filenames:
