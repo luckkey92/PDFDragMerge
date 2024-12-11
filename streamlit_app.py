@@ -1,7 +1,6 @@
 import streamlit as st
 from PyPDF2 import PdfMerger
 from io import BytesIO
-import streamlit_sortables as sortables
 
 # 제목 설정
 st.title("PDF 병합 앱")
@@ -17,18 +16,18 @@ if uploaded_files:
     filenames = [file.name for file in uploaded_files]
 
     # 파일 순서 드래그 앤 드롭으로 조정
-    reordered_filenames = sortables.sortable_list(
-        items=filenames,
-        direction="vertical",
-        label="드래그 앤 드롭하여 순서를 변경하세요"
-    )
+    reordered_filenames = st.text_area(
+        "드래그 앤 드롭하여 순서를 변경하세요 (순서를 직접 변경 후 파일 이름을 다시 입력):",
+        value="\n".join(filenames),
+        height=200
+    ).split("\n")
 
     if st.button("병합 시작"):
         # 순서대로 파일 병합
         merger = PdfMerger()
         for filename in reordered_filenames:
             for file in uploaded_files:
-                if file.name == filename:
+                if file.name == filename.strip():
                     merger.append(file)
 
         # 병합된 PDF 저장
