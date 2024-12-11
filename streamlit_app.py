@@ -1,44 +1,54 @@
 import streamlit as st
 from PyPDF2 import PdfMerger
-from io import BytesIO
+from streamlit_sortables import sort_items
+import tempfile
 
-# 제목 설정
+# Streamlit 앱 제목
 st.title("PDF 병합 앱")
-st.write("여러 PDF 파일을 드래그 앤 드롭하여 순서를 선택하고 병합하세요.")
 
-# PDF 파일 업로드
-uploaded_files = st.file_uploader("PDF 파일을 업로드하세요", accept_multiple_files=True, type="pdf")
+# 파일 업로드 섹션
+uploaded_files = st.file_uploader(
+    "병합할 PDF 파일을 업로드하세요. (여러 파일 선택 가능)",
+    type="pdf",
+    accept_multiple_files=True
+)
 
 if uploaded_files:
-    st.write("파일 순서를 조정하려면 아래에서 드래그 앤 드롭하세요:")
+    # 사용자에게 파일 이름 순서를 정렬하도록 제공
+    file_names = [file.name for file in uploaded_files]
+    st.write("파일 순서를 변경하려면 아래 리스트를 드래그 앤 드롭하세요.")
+    sorted_files = sort_items(file_names)
 
-    # 파일 이름 가져오기
-    filenames = [file.name for file in uploaded_files]
+    # 사용자가 정렬한 순서를 보여줌
+    st.write("현재 정렬 순서:")
+    for index, file_name in enumerate(sorted_files, start=1):
+        st.write(f"{index}. {file_name}")
 
-    # 파일 순서 드래그 앤 드롭으로 조정
-    reordered_filenames = st.experimental_rerun_ordered_list(
-        filenames, key="reorder_list"
-    )
+    # PDF 병합 버튼
+    if st.button("PDF 병합"):
+        try:
+            merger = PdfMerger()
+            sorted_uploaded_files = [
+                next(file for file in uploaded_files if file.name == name)
+                for name in sorted_files
+            ]
 
-    if st.button("병합 시작"):
-        # 순서대로 파일 병합
-        merger = PdfMerger()
-        for filename in reordered_filenames:
-            for file in uploaded_files:
-                if file.name == filename:
-                    merger.append(file)
+            for pdf_file in sorted_uploaded_files:
+                merger.append(pdf_file)
 
-        # 병합된 PDF 저장
-        output = BytesIO()
-        merger.write(output)
-        merger.close()
-        output.seek(0)
+            # 병합된 PDF 임시 저장
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_file:
+                merger.write(temp_file.name)
+                merger.close()
 
-        # 다운로드 링크 제공
-        st.success("PDF 병합이 완료되었습니다!")
-        st.download_button(
-            label="병합된 PDF 다운로드",
-            data=output,
-            file_name="merged.pdf",
-            mime="application/pdf"
-        )
+                # 병합된 파일 다운로드 제공
+                with open(temp_file.name, "rb") as merged_pdf:
+                    st.download_button(
+                        label="병합된 PDF 다운로드",
+                        data=merged_pdf,
+                        file_name="merged.pdf",
+                        mime="application/pdf"
+                    )
+
+        except Exception as e:
+            st.error(f"PDF 병합 중 오류가 발생했습니다: {e}")
